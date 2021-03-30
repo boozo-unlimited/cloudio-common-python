@@ -24,6 +24,7 @@ class MqttAsyncClient(object):
     # Errors from mqtt module - mirrored into this class
     MQTT_ERR_SUCCESS = mqtt.MQTT_ERR_SUCCESS
     MQTT_ERR_NO_CONN = mqtt.MQTT_ERR_NO_CONN
+    MQTT_ERR_INVAL = mqtt.MQTT_ERR_INVAL
 
     log = logging.getLogger('cloudio.mqttasyncclient')
 
@@ -32,6 +33,7 @@ class MqttAsyncClient(object):
         self._host = host
         self._onConnectCallback = None
         self._onDisconnectCallback = None
+        self._onMessagePublishedCallback = None
         self._onMessageCallback = None
         self._client = None
         self._clientLock = RLock()  # Protects access to _client attribute
@@ -53,6 +55,7 @@ class MqttAsyncClient(object):
             self._client.on_connect = self.on_connect
             self._client.on_disconnect = self.on_disconnect
             self._client.on_message = self.on_message
+            self._client.on_publish = self.on_published
         self._clientLock.release()
 
     def set_on_connect_callback(self, on_connect_callback):
@@ -63,6 +66,9 @@ class MqttAsyncClient(object):
 
     def set_on_message_callback(self, on_message_callback):
         self._onMessageCallback = on_message_callback
+
+    def set_on_messsage_published(self, on_messsage_published_callback):
+        self._onMessagePublishedCallback = on_messsage_published_callback
 
     def connect(self, options):
         port = options.port if options.port else 1883  # Default port without ssl
@@ -200,25 +206,23 @@ class MqttAsyncClient(object):
         if self._onMessageCallback:
             self._onMessageCallback(client, userdata, msg)
 
-    def publish(self, topic, payload=None, qos=0, retain=False):
-        if not self._client:
-            return False
+    def on_published(self, client, userdata, mid):
+        # print('Msg #{} sent'.format(mid))
 
-        timeout = 0.1
+        # Notify container class
+        if self._onMessagePublishedCallback:
+            self._onMessagePublishedCallback(client, userdata, mid)
+
+    def publish(self, topic, payload=None, qos=0, retain=False):
+
+        if not self.is_connected():
+            message_info = mqtt.MQTTMessageInfo(mid=0)
+            message_info.rc = mqtt.MQTT_ERR_INVAL
+            return message_info
+
         message_info = self._client.publish(topic, payload, qos, retain)
 
-        # Cannot use message_info.wait_for_publish() because it is blocking and
-        # has no timeout parameter
-        # message_info.wait_for_publish()
-        #
-        # Poll is_published() method
-        while timeout > 0:
-            if message_info.is_published():
-                break
-            timeout -= 0.005
-            time.sleep(0.005)
-
-        return message_info.rc == self.MQTT_ERR_SUCCESS
+        return message_info
 
     def subscribe(self, topic, qos=0):
         if self._client:

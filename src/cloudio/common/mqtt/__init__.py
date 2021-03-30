@@ -5,6 +5,8 @@
 import pkgutil
 __path__ = pkgutil.extend_path(__path__, __name__)
 
+from paho.mqtt.client import MQTTMessage, MQTTMessageInfo
+
 from .helpers import MqttConnectOptions
 from .helpers import MqttAsyncClient
 from .helpers import MqttReconnectClient
