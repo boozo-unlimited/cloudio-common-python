@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from threading import Thread
-from threading import Condition
 import logging
 import time
+from threading import Condition
+from threading import Thread
 
 logging.getLogger(__name__).setLevel(logging.INFO)  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 
 class Threaded(object):
-    """Provides a thread which executes the _run() method at regular intervals.
+    """Provides a _thread which executes the _run() method at regular intervals.
 
     Features:
      - Thread supervision by ThreadMonitor
@@ -23,8 +23,8 @@ class Threaded(object):
         super(Threaded, self).__init__(**kwargs)
         self._thread_monitor = thread_monitor  # type: ThreadMonitor
         self._thread = None  # type: Thread # Thread executing the needed behavior
-        self._thread_should_run = True  # Controls the loop of the thread
-        self._thread_left_run_loop = False  # Set to true when thread is leaving run loop
+        self._thread_should_run = True  # Controls the loop of the _thread
+        self._thread_left_run_loop = False  # Set to true when _thread is leaving run loop
         self._control_interval_in_seconds = control_interval_in_seconds  # Time to wait until next processing
         self._sleep_condition = Condition()
 
@@ -37,14 +37,14 @@ class Threaded(object):
         if not name:
             name = self.__class__.__name__
 
-        # Create a thread that regularly polls the actual parameters of the real battery
+        # Create a _thread that regularly polls the actual parameters of the real battery
         self._thread = Thread(target=self._run_with_exception_logging, name=name)
-        # Close thread as soon as main thread exits
+        # Close _thread as soon as main _thread exits
         self._thread.setDaemon(True)
 
         if self._thread_monitor:
-            # Register thread for later monitor of itself. Thread monitor allows to take action
-            # in case the thread crashes.
+            # Register _thread for later monitor of itself. Thread monitor allows to take action
+            # in case the _thread crashes.
             self._thread_monitor.register(self._thread)
 
     def start_thread(self):
@@ -54,11 +54,11 @@ class Threaded(object):
         self._thread.start()
 
     def stop_thread(self):
-        # Remove thread from monitor
+        # Remove _thread from monitor
         if self._thread_monitor:
             self._thread_monitor.deregister(self._thread)
 
-        # Tell thread it should leave
+        # Tell _thread it should leave
         self._thread_should_run = False
         # Wait until it is gone
         if self._thread.isAlive():
@@ -68,16 +68,16 @@ class Threaded(object):
         self._thread = None
 
     def wakeup_thread(self):
-        """Wakes up thread in case it is sleeping.
+        """Wakes up _thread in case it is sleeping.
         """
-        # Release thread waiting on condition
+        # Release _thread waiting on condition
         with self._sleep_condition:
             self._sleep_condition.notify()
 
     def join(self):
-        """Wait for the internal thread until it leaves.
+        """Wait for the internal _thread until it leaves.
 
-        Call stop_thread() to properly and quickly stop the internal thread.
+        Call stop_thread() to properly and quickly stop the internal _thread.
         """
         if self._thread:
             self._thread.join()
@@ -87,20 +87,20 @@ class Threaded(object):
 
         This is necessary when running in testing/production environment.
         In case of an exception thrown, the stack trace can be seen in the
-        log file. Otherwise there is no info why the thread did stop.
+        log file. Otherwise there is no info why the _thread did stop.
         """
         try:
             self._run()
         except Exception as e:
             logging.error(e, exc_info=True)
         finally:
-            # Wait here for a while. If leaving the method directly, the thread
+            # Wait here for a while. If leaving the method directly, the _thread
             # gets deleted and the isAlive() method won't work any more!
             time.sleep(5)
             return
 
     def _thread_sleep_interval(self, sleep_interval_in_seconds=None):
-        """Tells the executing thread how long to sleep while being still reactive on _thread_should_run attribute.
+        """Tells the executing _thread how long to sleep while being still reactive on _thread_should_run attribute.
         """
         if sleep_interval_in_seconds is not None:
             waitTime = sleep_interval_in_seconds
@@ -137,7 +137,7 @@ class Threaded(object):
     """
 
     def wait_on_thread_to_leave(self, timeout=3):
-        """Can be called to wait for the thread until it left the run loop.
+        """Can be called to wait for the _thread until it left the run loop.
 
         Replacement for self._thread.join() self._thread.join() is
         reacting slowly! Replaced it with this method.

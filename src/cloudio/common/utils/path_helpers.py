@@ -2,6 +2,7 @@
 
 import os
 
+
 def prettify(pathName):
     """Makes all necessary stuff to get a usable path (specially under Windows)
 

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import os
-import time
-from threading import Thread, RLock, Event, current_thread
 import logging
-import traceback
-from abc import ABCMeta
-import paho.mqtt.client as mqtt  # pip install paho-mqtt
+import os
 import ssl
+import time
+import traceback
 import uuid
+from abc import ABCMeta
+from threading import Thread, RLock, Event, current_thread
 
+import paho.mqtt.client as mqtt  # pip install paho-mqtt
 from cloudio.common.utils import path_helpers
+
 from .pending_update import PendingUpdate
 
 # Set logging level
@@ -29,26 +30,26 @@ class MqttAsyncClient(object):
     log = logging.getLogger('cloudio.mqttasyncclient')
 
     def __init__(self, host, client_id='', clean_session=True):
-        self._isConnected = False
+        self._is_connected = False
         self._host = host
-        self._onConnectCallback = None
-        self._onDisconnectCallback = None
-        self._onMessagePublishedCallback = None
-        self._onMessageCallback = None
+        self._on_connect_callback = None
+        self._on_disconnect_callback = None
+        self._on_message_published_callback = None
+        self._on_message_callback = None
         self._client = None
-        self._clientLock = RLock()  # Protects access to _client attribute
+        self._client_lock = RLock()  # Protects access to _client attribute
 
         # Store mqtt client parameter for potential later reconnection
         # to cloud.iO
-        self._clientClientId = client_id
-        self._clientCleanSession = clean_session
+        self._client_client_id = client_id
+        self._client_clean_session = clean_session
 
     def _create_mqtt_client(self):
-        self._clientLock.acquire()
+        self._client_lock.acquire()
         if self._client is None:
-            if self._clientClientId:
-                self._client = mqtt.Client(client_id=self._clientClientId,
-                                           clean_session=self._clientCleanSession)
+            if self._client_client_id:
+                self._client = mqtt.Client(client_id=self._client_client_id,
+                                           clean_session=self._client_clean_session)
             else:
                 self._client = mqtt.Client()
 
@@ -56,54 +57,54 @@ class MqttAsyncClient(object):
             self._client.on_disconnect = self.on_disconnect
             self._client.on_message = self.on_message
             self._client.on_publish = self.on_published
-        self._clientLock.release()
+        self._client_lock.release()
 
     def set_on_connect_callback(self, on_connect_callback):
-        self._onConnectCallback = on_connect_callback
+        self._on_connect_callback = on_connect_callback
 
     def set_on_disconnect_callback(self, on_disconnect_callback):
-        self._onDisconnectCallback = on_disconnect_callback
+        self._on_disconnect_callback = on_disconnect_callback
 
     def set_on_message_callback(self, on_message_callback):
-        self._onMessageCallback = on_message_callback
+        self._on_message_callback = on_message_callback
 
     def set_on_messsage_published(self, on_messsage_published_callback):
-        self._onMessagePublishedCallback = on_messsage_published_callback
+        self._on_message_published_callback = on_messsage_published_callback
 
     def connect(self, options):
         port = options.port if options.port else 1883  # Default port without ssl
 
-        if options.caFile:
+        if options.ca_file:
             # Check if file exists
-            if not os.path.isfile(options.caFile):
-                raise RuntimeError('CA file \'%s\' does not exist!' % options.caFile)
+            if not os.path.isfile(options.ca_file):
+                raise RuntimeError('CA file \'%s\' does not exist!' % options.ca_file)
 
         client_cert_file = None
-        if options.clientCertFile:
+        if options.client_cert_file:
             # Check if file exists
-            if not os.path.isfile(options.clientCertFile):
-                raise RuntimeError('Client certificate file \'%s\' does not exist!' % options.clientCertFile)
+            if not os.path.isfile(options.client_cert_file):
+                raise RuntimeError('Client certificate file \'%s\' does not exist!' % options.client_cert_file)
             else:
-                client_cert_file = options.clientCertFile
+                client_cert_file = options.client_cert_file
 
         client_key_file = None
-        if options.clientKeyFile:
+        if options.client_key_file:
             # Check if file exists
-            if not os.path.isfile(options.clientKeyFile):
-                raise RuntimeError('Client private key file \'%s\' does not exist!' % options.clientKeyFile)
+            if not os.path.isfile(options.client_key_file):
+                raise RuntimeError('Client private key file \'%s\' does not exist!' % options.client_key_file)
             else:
-                client_key_file = options.clientKeyFile
+                client_key_file = options.client_key_file
 
         # Check which TSL protocol version should be used
         try:
             tls_version = ssl.PROTOCOL_TLSv1_2
         except Exception:
             tls_version = ssl.PROTOCOL_TLSv1
-        if options.tlsVersion:
-            if options.tlsVersion.lower() in ('tlsv1', 'tlsv1.0'):
+        if options.tls_version:
+            if options.tls_version.lower() in ('tlsv1', 'tlsv1.0'):
                 tls_version = ssl.PROTOCOL_TLSv1
 
-        self._clientLock.acquire()  # Protect _client attribute
+        self._client_lock.acquire()  # Protect _client attribute
 
         # Create MQTT client if necessary
         self._create_mqtt_client()
@@ -114,15 +115,15 @@ class MqttAsyncClient(object):
                                   options.will['qos'],
                                   options.will['retained'])
         if self._client:
-            if options.caFile:
-                port = options.port if options.port else 8883       # Default port with ssl
-                self._client.tls_set(options.caFile,                # CA certificate
-                                     certfile=client_cert_file,     # Client certificate
-                                     keyfile=client_key_file,       # Client private key
-                                     tls_version=tls_version,       # ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_2
-                                     ciphers=None)                  # None, 'ALL', 'TLSv1.2', 'TLSv1.0'
-                self._client.tls_insecure_set(True)     # True: No verification of the server hostname in
-                                                        # the server certificate
+            if options.ca_file:
+                port = options.port if options.port else 8883  # Default port with ssl
+                self._client.tls_set(options.ca_file,  # CA certificate
+                                     certfile=client_cert_file,  # Client certificate
+                                     keyfile=client_key_file,  # Client private key
+                                     tls_version=tls_version,  # ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_2
+                                     ciphers=None)  # None, 'ALL', 'TLSv1.2', 'TLSv1.0'
+                self._client.tls_insecure_set(True)  # True: No verification of the server hostname in
+                # the server certificate
             else:
                 self.log.error('No CA file provided. Connection attempt likely to fail!')
 
@@ -136,7 +137,7 @@ class MqttAsyncClient(object):
 
             self._client.connect(self._host, port=port)
             self._client.loop_start()
-        self._clientLock.release()
+        self._client_lock.release()
         time.sleep(1)  # Wait a bit for the callback on_connect to be called
 
     def disconnect(self, force_client_disconnect=True):
@@ -150,7 +151,7 @@ class MqttAsyncClient(object):
         :return None
         :rtype: None
         """
-        self._clientLock.acquire()
+        self._client_lock.acquire()
         # Stop MQTT client if still running
         if self._client:
             if force_client_disconnect:
@@ -159,19 +160,19 @@ class MqttAsyncClient(object):
             self._client.loop_stop()
             self._client = None
 
-        self._isConnected = False
+        self._is_connected = False
 
-        self._clientLock.release()
+        self._client_lock.release()
 
     def is_connected(self):
-        return self._client and self._isConnected
+        return self._client and self._is_connected
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            self._isConnected = True
+            self._is_connected = True
             self.log.info('Connection to cloud.iO broker established')
-            if self._onConnectCallback:
-                self._onConnectCallback()
+            if self._on_connect_callback:
+                self._on_connect_callback()
         else:
             if rc == 1:
                 self.log.error('Connection refused - incorrect protocol version')
@@ -190,28 +191,28 @@ class MqttAsyncClient(object):
         self.log.info('Disconnect: %d' % rc)
 
         # Caution:
-        # Do not call self.disconnect() here. It will kill the thread calling this
+        # Do not call self.disconnect() here. It will kill the _thread calling this
         # method and any subsequent code will not be executed!
         # self.disconnect()
 
         # Notify container class if disconnect callback
         # was registered.
-        if self._onDisconnectCallback:
-            self._onDisconnectCallback(rc)
+        if self._on_disconnect_callback:
+            self._on_disconnect_callback(rc)
         else:
             self.log.warning('On disconnect callback not set')
 
     def on_message(self, client, userdata, msg):
         # Delegate to container class
-        if self._onMessageCallback:
-            self._onMessageCallback(client, userdata, msg)
+        if self._on_message_callback:
+            self._on_message_callback(client, userdata, msg)
 
     def on_published(self, client, userdata, mid):
         # print('Msg #{} sent'.format(mid))
 
         # Notify container class
-        if self._onMessagePublishedCallback:
-            self._onMessagePublishedCallback(client, userdata, mid)
+        if self._on_message_published_callback:
+            self._on_message_published_callback(client, userdata, mid)
 
     def publish(self, topic, payload=None, qos=0, retain=False):
 
@@ -242,13 +243,13 @@ class MqttReconnectClient(MqttAsyncClient):
 
         # options are not used by MqttAsyncClient store them in this class
         self._options = options
-        self._onConnectedCallback = None
-        self._onConnectionThreadFinishedCallback = None
-        self._retryInterval = 10  # Connect retry interval in seconds
-        self._autoReconnect = True
-        self.thread = None
-        self._connectTimeoutEvent = Event()
-        self._connectionThreadLooping = True  # Set to false in case the connection thread should leave
+        self._on_connected_callback = None
+        self._on_connection_thread_finished_callback = None
+        self._retry_interval = 10  # Connect retry interval in seconds
+        self._auto_reconnect = True
+        self._thread = None
+        self._connect_timeout_event = Event()
+        self._connection_thread_looping = True  # Set to false in case the connection _thread should leave
 
         # Register callback method to be called when connection to cloud.iO gets established
         MqttAsyncClient.set_on_connect_callback(self, self._on_connect)
@@ -263,78 +264,78 @@ class MqttReconnectClient(MqttAsyncClient):
         assert False, 'Not allowed in this class!'
 
     def set_on_connected_callback(self, on_connected_callback):
-        self._onConnectedCallback = on_connected_callback
+        self._on_connected_callback = on_connected_callback
 
     def set_on_connection_thread_finished_callback(self, on_connection_thread_finished_callback):
-        self._onConnectionThreadFinishedCallback = on_connection_thread_finished_callback
+        self._on_connection_thread_finished_callback = on_connection_thread_finished_callback
 
     def start(self):
         self._start_connection_thread()
 
     def stop(self):
-        self.log.info('Stopping MqttReconnectClient thread')
-        self._autoReconnect = False
+        self.log.info('Stopping MqttReconnectClient _thread')
+        self._auto_reconnect = False
         self.disconnect()
 
     def _start_connection_thread(self):
-        if self.thread is current_thread():
+        if self._thread is current_thread():
             # Do not restart myself!
-            self.log.warning('Mqtt client connection thread is me! Not restarting myself!')
+            self.log.warning('Mqtt client connection _thread is me! Not restarting myself!')
             return
-        if self.thread and self.thread.is_alive():
-            self.log.warning('Mqtt client connection thread already/still running!')
+        if self._thread and self._thread.is_alive():
+            self.log.warning('Mqtt client connection _thread already/still running!')
             return
 
         self._stop_connection_thread()
 
-        self.log.info('Starting MqttReconnectClient thread')
-        self.thread = Thread(target=self._run, name='mqtt-reconnect-client-' + self._clientClientId)
-        # Close thread as soon as main thread exits
-        self.thread.setDaemon(True)
+        self.log.info('Starting MqttReconnectClient _thread')
+        self._thread = Thread(target=self._run, name='mqtt-reconnect-client-' + self._client_client_id)
+        # Close _thread as soon as main _thread exits
+        self._thread.setDaemon(True)
 
-        self._connectionThreadLooping = True
-        self.thread.start()
+        self._connection_thread_looping = True
+        self._thread.start()
 
     def _stop_connection_thread(self):
-        self.log.info('Stopping MqttReconnectClient thread')
-        if self.thread:
+        self.log.info('Stopping MqttReconnectClient _thread')
+        if self._thread:
             try:
-                self._connectionThreadLooping = False
-                self.thread.join()
-                self.thread = None
+                self._connection_thread_looping = False
+                self._thread.join()
+                self._thread = None
             except RuntimeError:
-                self.log.error('Could not wait for connection thread')
+                self.log.error('Could not wait for connection _thread')
                 traceback.print_exc()
 
     def _on_connect(self):
-        self._connectTimeoutEvent.set()  # Free the connection thread
+        self._connect_timeout_event.set()  # Free the connection _thread
 
     def _on_disconnect(self, rc):
-        if self._autoReconnect:
+        if self._auto_reconnect:
             self._start_connection_thread()
 
     def _on_connected(self):
-        if self._onConnectedCallback:
-            self._onConnectedCallback()
+        if self._on_connected_callback:
+            self._on_connected_callback()
 
     def _on_connection_thread_finished(self):
-        if self._onConnectionThreadFinishedCallback:
-            self._onConnectionThreadFinishedCallback()
+        if self._on_connection_thread_finished_callback:
+            self._on_connection_thread_finished_callback()
 
     ######################################################################
     # Active part
     #
     def _run(self):
-        """Called by the internal thread"""
+        """Called by the internal _thread"""
 
-        self.log.info('Mqtt client reconnect thread running...')
+        self.log.info('Mqtt client reconnect _thread running...')
 
         # Close any previous connection
         self.disconnect()
 
-        while not self.is_connected() and self._connectionThreadLooping:
+        while not self.is_connected() and self._connection_thread_looping:
             try:
-                self._connectTimeoutEvent.clear()  # Reset connect timeout event prior to connect
+                self._connect_timeout_event.clear()  # Reset connect timeout event prior to connect
                 self.log.info('Trying to connect to cloud.iO...')
                 self.connect(self._options)
             except Exception:
@@ -344,20 +345,20 @@ class MqttReconnectClient(MqttAsyncClient):
                 self.disconnect(force_client_disconnect=False)
                 # Do not exit here. Continue to try to connect
 
-            # Check if thread should leave
-            if not self._connectionThreadLooping:
-                # Tell subscriber connection thread has finished
+            # Check if _thread should leave
+            if not self._connection_thread_looping:
+                # Tell subscriber connection _thread has finished
                 self._on_connection_thread_finished()
                 return
 
             if not self.is_connected():
                 # If we should not retry, give up
-                if self._retryInterval > 0:
+                if self._retry_interval > 0:
                     # Wait until it is time for the next connect
-                    self._connectTimeoutEvent.wait(self._retryInterval)
+                    self._connect_timeout_event.wait(self._retry_interval)
 
                 # If we should not retry, give up
-                if self._retryInterval == 0:
+                if self._retry_interval == 0:
                     break
 
         self.log.info('Thread: Job done - leaving')
@@ -368,19 +369,19 @@ class MqttReconnectClient(MqttAsyncClient):
             # Tell subscriber we are connected
             self._on_connected()
 
-        # Tell subscriber connection thread has finished
+        # Tell subscriber connection _thread has finished
         self._on_connection_thread_finished()
 
 
 class MqttConnectOptions(object):
     def __init__(self):
-        self.port = 8883    # Default port with ssl
+        self.port = 8883  # Default port with ssl
         self.username = ''
         self.password = ''
-        self.caFile = None  # type: str or None
-        self.clientCertFile = None  # type: str or None
-        self.clientKeyFile = None  # type: str or None
-        self.tlsVersion = None  # type: str or None
+        self.ca_file = None  # type: str or None
+        self.client_cert_file = None  # type: str or None
+        self.client_key_file = None  # type: str or None
+        self.tls_version = None  # type: str or None
         self.will = None  # type dict
 
     def set_will(self, topic, message, qos, retained):
@@ -531,10 +532,10 @@ class MqttDefaultFilePersistence(MqttClientPersistence):
             directory = self.DEFAULT_DIRECTORY
 
         self._directory = path_helpers.prettify(directory)
-        self._perClientIdAndServerUriDirectory = None  # type: str or None
+        self._per_client_id_and_server_uri_directory = None  # type: str or None
 
         # Give a temporary unique storage name in case open() method does not get called
-        self._perClientIdAndServerUriDirectory = str(uuid.uuid4())
+        self._per_client_id_and_server_uri_directory = str(uuid.uuid4())
 
         # Create base directory
         if not os.path.exists(self._directory):
@@ -548,20 +549,20 @@ class MqttDefaultFilePersistence(MqttClientPersistence):
         :param server_uri: Connection name to the server
         :type server_uri: str
         """
-        self._perClientIdAndServerUriDirectory = client_id + '-' + server_uri
+        self._per_client_id_and_server_uri_directory = client_id + '-' + server_uri
 
         # Remove some unwanted characters in sub-directory name
-        self._perClientIdAndServerUriDirectory = self._perClientIdAndServerUriDirectory.replace('/', '')
-        self._perClientIdAndServerUriDirectory = self._perClientIdAndServerUriDirectory.replace('\\', '')
-        self._perClientIdAndServerUriDirectory = self._perClientIdAndServerUriDirectory.replace(':', '')
-        self._perClientIdAndServerUriDirectory = self._perClientIdAndServerUriDirectory.replace(' ', '')
+        self._per_client_id_and_server_uri_directory = self._per_client_id_and_server_uri_directory.replace('/', '')
+        self._per_client_id_and_server_uri_directory = self._per_client_id_and_server_uri_directory.replace('\\', '')
+        self._per_client_id_and_server_uri_directory = self._per_client_id_and_server_uri_directory.replace(':', '')
+        self._per_client_id_and_server_uri_directory = self._per_client_id_and_server_uri_directory.replace(' ', '')
 
         # Create storage directory
         if not os.path.exists(self._storage_directory()):
             os.makedirs(self._storage_directory())
 
     def _storage_directory(self):
-        return os.path.join(self._directory, self._perClientIdAndServerUriDirectory)
+        return os.path.join(self._directory, self._per_client_id_and_server_uri_directory)
 
     def _key_file_name(self, key):
         return os.path.join(self._storage_directory(), key)

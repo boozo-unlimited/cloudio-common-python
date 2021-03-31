@@ -8,11 +8,12 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+import os
 # To use a consistent encoding
 from codecs import open
-import os
+
+# Always prefer setuptools over distutils
+from setuptools import setup, find_packages
 
 
 def read_version_info():
@@ -84,7 +85,7 @@ setup(
     #
     # This field corresponds to the "Home-Page" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
-    url='http://cloudio.hevs.ch',  # Optional
+    url='https://github.com/boozo-unlimited/cloudio-common-python',  # Optional
 
     # This should be your name or the name of the organization which owns the
     # project.
@@ -129,7 +130,7 @@ setup(
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='cloud.iO common library IoT cloud connector utils mqtt',  # Optional
+    keywords='cloud.iO common library IoT cloud connector core utils mqtt',  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
