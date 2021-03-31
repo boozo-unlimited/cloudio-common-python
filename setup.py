@@ -8,11 +8,12 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+import os
 # To use a consistent encoding
 from codecs import open
-import os
+
+# Always prefer setuptools over distutils
+from setuptools import setup, find_packages
 
 
 def read_version_info():
