@@ -4,8 +4,8 @@
 
 import unittest
 
-from cloudio.common.utils import string_helpers
 from tests.cloudio.common.paths import update_working_directory
+from cloudio.common.utils import string_helpers
 
 update_working_directory()  # Needed when: 'pipenv run python -m unittest tests/cloudio/common/{this_file}.py'
 

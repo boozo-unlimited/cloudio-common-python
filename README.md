@@ -1,4 +1,6 @@
 # Cloud.iO Common Package
+![version](https://img.shields.io/pypi/v/cloudio-common-python.svg)
+![coverage](docs/images/coverage.svg)
 
 This project makes part of [cloud.iO](https://cloudio.hevs.ch/).
 
