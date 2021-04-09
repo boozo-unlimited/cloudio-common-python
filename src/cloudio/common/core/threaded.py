@@ -61,7 +61,7 @@ class Threaded(object):
         # Tell _thread it should leave
         self._thread_should_run = False
         # Wait until it is gone
-        if self._thread.isAlive():
+        if self._thread.is_alive():
             self.wait_on_thread_to_leave()
         # Delete instance
         del self._thread
@@ -95,7 +95,7 @@ class Threaded(object):
             logging.error(e, exc_info=True)
         finally:
             # Wait here for a while. If leaving the method directly, the _thread
-            # gets deleted and the isAlive() method won't work any more!
+            # gets deleted and the is_alive() method won't work any more!
             time.sleep(5)
             return
 
