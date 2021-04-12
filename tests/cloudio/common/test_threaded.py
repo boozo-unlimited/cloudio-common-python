@@ -123,12 +123,9 @@ class TestCloudioCommonCoreThreaded(unittest.TestCase):
             def _run(self):
                 while self._thread_should_run:
 
-                    # Add your stuff here
-                    print('+')
-
                     # Wait until next interval begins
                     if self._thread_should_run:
-                        self._thread_sleep_interval()
+                        self._thread_sleep_interval(0.1)
 
                 self._thread_left_run_loop = True
 

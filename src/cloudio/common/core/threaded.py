@@ -117,12 +117,14 @@ class Threaded(object):
             # see wakeup_thread()
             try:
                 self._sleep_condition.wait(timeout=waitTime)
-            except RuntimeError as e:
+            except RuntimeError as e:  # pragma: no cover
                 self.log.exception(e)
             finally:
                 self._sleep_condition.release()
+                return True
         else:
-            self.log.error('Could not acquire sleep condition!')
+            self.log.error('Could not acquire sleep condition!')  # pragma: no cover
+        return False  # pragma: no cover
 
     def _run(self):
         assert False, 'Method needs to be implemented in derived class!'
