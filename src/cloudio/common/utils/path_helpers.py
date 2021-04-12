@@ -3,23 +3,32 @@
 import os
 
 
-def prettify(pathName):
+def prettify(path_name: str) -> str:
     """Makes all necessary stuff to get a usable path (specially under Windows)
 
-    :param pathName: Path to make pretty
-    :type pathName: str The new 'pretty' path
+    :param path_name: Path to make pretty
     """
 
-    if pathName:
+    if path_name:
         # Remove backslashes from path
-        pathName = pathName.replace('\\', '/')
+        path_name = path_name.replace('\\', '/')
 
-        if pathName[0] == '~':
-            basePath = os.path.expanduser(pathName[0])
-            remainingPath = pathName[2:] if pathName[1] == '/' else pathName[1:]
-            pathName = os.path.join(basePath, remainingPath)
+        if path_name[0] == '~':
+            base_path = os.path.expanduser(path_name[0])
+            remaining_path = path_name[2:] if path_name[1] == '/' else path_name[1:]
+            path_name = os.path.join(base_path, remaining_path)
 
         # and again
-        pathName = pathName.replace('\\', '/')
+        path_name = path_name.replace('\\', '/')
 
-    return pathName
+    return path_name
+
+def home_directory():
+    home_dir = os.path.expanduser('~')
+    return home_dir
+
+def path_from_file(path_file_name: str) -> str:
+    """Returns the path of the given file location string.
+    """
+    path = os.path.abspath(os.path.dirname(path_file_name))
+    return path

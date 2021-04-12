@@ -2,9 +2,10 @@
 
 import os
 import urllib.parse as urlparse  # pip install urllib3
-from os.path import expanduser
 
 from configobj import ConfigObj  # pip install configobj
+
+from .path_helpers import prettify
 
 
 class ResourceLoader():
@@ -21,8 +22,9 @@ class ResourceLoader():
             url = urlparse.urlparse(location)
 
             if url.scheme == 'home':
-                base_path = expanduser('~').replace('\\', '/') + url.path
+                base_path = os.path.expanduser('~') + url.path
                 file_path = os.path.join(base_path, filename)
+                file_path = prettify(file_path)
 
                 if os.path.isfile(file_path):
                     properties = ConfigObj(file_path)
@@ -39,8 +41,6 @@ class ResourceLoader():
                 file_path = location + filename
                 try:
                     file = urllib.urlopen(file_path)
-                    print(file)
-                except:
+                except NameError:
                     pass
-
         return {}
