@@ -21,7 +21,7 @@ class TestDefaultThreadMonitor(object):
         pass
 
 
-class TestCloudioCommonCoreHelpers(unittest.TestCase):
+class TestCloudioCommonCoreThreaded(unittest.TestCase):
     """Tests threaded module.
     """
 
@@ -136,6 +136,41 @@ class TestCloudioCommonCoreHelpers(unittest.TestCase):
         worker.start_thread()
         time.sleep(0.5)
         worker.stop_thread()
+
+    def test_threaded_thread_restart(self):
+        """Checks if threaded class can be started, stop and restarted again.
+        """
+
+        class Worker(threaded.Threaded):
+            def __init__(self, control_interval_in_seconds):
+                super(Worker, self).__init__(control_interval_in_seconds=control_interval_in_seconds)
+
+                self.loop_counter = 0
+
+            def _run(self):
+                while self._thread_should_run:
+
+                    self.loop_counter += 1
+
+                    # Wait until next interval begins
+                    if self._thread_should_run:
+                        self._thread_sleep_interval()
+
+                self._thread_left_run_loop = True
+
+        worker = Worker(control_interval_in_seconds=0.1)
+        worker.start_thread()
+        time.sleep(0.5)
+        worker.stop_thread()
+
+        self.assertTrue(worker.loop_counter > 0)
+        last_loop_counter = worker.loop_counter
+
+        worker.start_thread()
+        time.sleep(0.5)
+        worker.stop_thread()
+
+        self.assertTrue(worker.loop_counter > last_loop_counter)
 
 
 if __name__ == '__main__':

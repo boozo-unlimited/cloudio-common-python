@@ -51,6 +51,11 @@ class Threaded(object):
         if self._thread is None:
             self.log.warning('Thread not created. Calling setThread() for you!')
             self.setup_thread()
+
+        # Reset run attributes
+        self._thread_should_run = True
+        self._thread_left_run_loop = False
+
         self._thread.start()
 
     def stop_thread(self):
