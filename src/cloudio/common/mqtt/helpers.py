@@ -135,10 +135,13 @@ class MqttAsyncClient(object):
                     password = None
                 self._client.username_pw_set(options.username, password=password)
 
+            self._client_lock.release()  # Need to release lock before connect().
+            # Otherwise other thread cannot disconnect
+
+            # Let MQTT client do the connection
             self._client.connect(self._host, port=port)
-            self._client.loop_start()
-        self._client_lock.release()
-        time.sleep(1)  # Wait a bit for the callback on_connect to be called
+            if self._client:
+                self._client.loop_start()
 
     def disconnect(self, force_client_disconnect=True):
         """Disconnects MQTT client
