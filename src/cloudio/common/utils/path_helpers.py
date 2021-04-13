@@ -23,9 +23,11 @@ def prettify(path_name: str) -> str:
 
     return path_name
 
+
 def home_directory():
     home_dir = os.path.expanduser('~')
     return home_dir
+
 
 def path_from_file(path_file_name: str) -> str:
     """Returns the path of the given file location string.

@@ -68,8 +68,8 @@ class MqttAsyncClient(object):
     def set_on_message_callback(self, on_message_callback):
         self._on_message_callback = on_message_callback
 
-    def set_on_messsage_published(self, on_messsage_published_callback):
-        self._on_message_published_callback = on_messsage_published_callback
+    def set_on_message_published(self, on_message_published_callback):
+        self._on_message_published_callback = on_message_published_callback
 
     def connect(self, options):
         port = options.port if options.port else 1883  # Default port without ssl
@@ -409,12 +409,12 @@ class MqttClientPersistence(object):
     def clear(self):
         """Clears persistence, so that it no longer contains any persisted data.
         """
-        pass
+        raise NotImplementedError
 
     def close(self):
         """Close the persistent store that was previously opened.
         """
-        pass
+        raise NotImplementedError
 
     def contains_key(self, key):
         """Returns whether or not data is persisted using the specified key.
@@ -423,7 +423,7 @@ class MqttClientPersistence(object):
         :type key str
         :return True if key is present.
         """
-        pass
+        raise NotImplementedError
 
     def get(self, key):
         """Gets the specified data out of the persistent store.
@@ -432,14 +432,14 @@ class MqttClientPersistence(object):
         :type key str
         :return The wanted data.
         """
-        pass
+        raise NotImplementedError
 
     def keys(self):
         """Returns an Enumeration over the keys in this persistent data store.
 
         :return: generator
         """
-        pass
+        raise NotImplementedError
 
     def open(self, client_id, server_uri):
         """Initialise the persistent store.
@@ -454,7 +454,7 @@ class MqttClientPersistence(object):
         :param server_uri The connection string as specified when the MQTT client instance was created.
         :type server_uri str
         """
-        pass
+        raise NotImplementedError
 
     def put(self, key, persistable):
         """Puts the specified data into the persistent store.
@@ -464,7 +464,7 @@ class MqttClientPersistence(object):
         :param persistable The data to persist.
         :type persistable bool
         """
-        pass
+        raise NotImplementedError
 
     def remove(self, key):
         """Remove the data for the specified key.
@@ -473,11 +473,11 @@ class MqttClientPersistence(object):
         :type key str
         :return None
         """
-        pass
+        raise NotImplementedError
 
 
 class MqttMemoryPersistence(MqttClientPersistence):
-    """Persistance store that uses memory.
+    """Persistence store that uses memory.
     """
 
     def __init__(self):
@@ -517,7 +517,7 @@ class MqttMemoryPersistence(MqttClientPersistence):
 
 
 class MqttDefaultFilePersistence(MqttClientPersistence):
-    """Persistance store providing file based storage.
+    """Persistence store providing file based storage.
     """
 
     DEFAULT_DIRECTORY = '~/mqtt-persistence'
@@ -608,8 +608,8 @@ class MqttDefaultFilePersistence(MqttClientPersistence):
         try:
             if os.path.isfile(key_file_name):
                 os.remove(key_file_name)
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover
+            pass  # pragma: no cover
 
     def clear(self):
         for key in os.listdir(self._storage_directory()):
