@@ -261,10 +261,10 @@ class MqttReconnectClient(MqttAsyncClient):
         MqttAsyncClient.set_on_disconnect_callback(self, self._on_disconnect)
 
     def set_on_connect_callback(self, on_connect):
-        assert False, 'Not allowed in this class!'
+        assert False, 'Not allowed in this class!'  # pragma: no cover
 
     def set_on_disconnect_callback(self, on_disconnect):
-        assert False, 'Not allowed in this class!'
+        assert False, 'Not allowed in this class!'  # pragma: no cover
 
     def set_on_connected_callback(self, on_connected_callback):
         self._on_connected_callback = on_connected_callback

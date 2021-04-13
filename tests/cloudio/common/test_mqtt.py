@@ -10,6 +10,7 @@ import ssl
 import time
 
 from tests.cloudio.common.paths import update_working_directory
+from cloudio.common.utils import path_helpers
 from cloudio.common import mqtt
 
 update_working_directory()  # Needed when: 'pipenv run python -m unittest tests/cloudio/common/{this_file}.py'
@@ -143,6 +144,10 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
         with self.assertRaises(ValueError):  # ValueError: Invalid host.
             client.connect(options=options)
 
+        options.password = ''
+        with self.assertRaises(ValueError):  # ValueError: Invalid host.
+            client.connect(options=options)
+
     def test_mqtt_reconnect_client_creation(self):
         client = mqtt.MqttReconnectClient(host=None)
         self.assertFalse(client.is_connected())
@@ -153,7 +158,7 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
 
         endpoint_config = 'VacuumCleanerEndpoint.properties'
         config = ResourceLoader.load_from_locations(endpoint_config, ['home:/.config/cloud.io', ])
-        self.assertNotEqual(config, dict())
+        self.assertNotEqual(config, dict())  # You must provide the needed config files!
 
         options = mqtt.MqttConnectOptions()
         options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
@@ -210,7 +215,7 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
 
         endpoint_config = 'VacuumCleanerEndpoint.properties'
         config = ResourceLoader.load_from_locations(endpoint_config, ['home:/.config/cloud.io', ])
-        self.assertNotEqual(config, dict())
+        self.assertNotEqual(config, dict())  # You must provide the needed config files!
 
         options = mqtt.MqttConnectOptions()
         options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
@@ -234,20 +239,80 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
         self.assertTrue('test' in model.received_topic)
         self.assertTrue(model.msg_published)
 
+    def test_bad_host_address(self):
+        from cloudio.common.utils.resource_loader import ResourceLoader
+        from cloudio.common.utils.resource_loader import prettify
+
+        endpoint_config = 'VacuumCleanerEndpoint.properties'
+        config = ResourceLoader.load_from_locations(endpoint_config, ['home:/.config/cloud.io', ])
+        self.assertNotEqual(config, dict())  # You must provide the needed config files!
+
+        options = mqtt.MqttConnectOptions()
+        options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
+        options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
+        options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
+
+        bad_host_address = 'test.' + config['ch.hevs.cloudio.endpoint.hostUri']
+
+        client = mqtt.MqttReconnectClient(host=bad_host_address,
+                                          client_id='test-vacuum-cleaner' + '-endpoint-',
+                                          clean_session=True,
+                                          options=options)
+
+        client.start()
+        client.start()  # Start a second time
+        time.sleep(2)
+        client.publish('test', 'test')
+        time.sleep(3)
+        client.stop()
+
 
 class TestCloudioCommonMqttDataStorage(unittest.TestCase):
     """Tests persistence classes in mqtt helpers module.
     """
 
+    test_directory = path_helpers.path_from_file(__file__)
+
+    def setUp(self) -> None:
+
+        # remove test directory
+        path_helpers.remove_directory(os.path.join(self.test_directory, 'test-test'))
+
+    def tearDown(self) -> None:
+
+        # remove test directory
+        path_helpers.remove_directory(os.path.join(self.test_directory, 'test-test'))
+
+    def test_mqtt_memory_persistence(self):
+        data_storage_mem = mqtt.MqttMemoryPersistence()
+
+        data_storage_mem.open('test', 'test')
+
+        data_storage_mem.put(key='food', persistable='salad')
+
+        data = data_storage_mem.get('food')
+        self.assertEqual(data, 'salad')
+        self.assertTrue(data_storage_mem.contains_key('food'))
+        self.assertFalse(data_storage_mem.contains_key('rocket'))
+
+        data = data_storage_mem.get('bolds')
+        self.assertIsNone(data)
+
+        data_storage_mem.clear()
+
+        data_storage_mem.put(key='food', persistable='salad')
+        data_storage_mem.put(key='drink', persistable='water')
+
+        data_storage_mem.remove('drink')
+        self.assertListEqual(data_storage_mem.keys(), ['food'])
+
+        data_storage_mem.remove('stone')
+
+        data_storage_mem.close()
+
     def test_mqtt_file_persistence(self):
-        from cloudio.common.utils import path_helpers
-        from shutil import rmtree
 
-        test_directory = path_helpers.path_from_file(__file__)
-        data_storage = mqtt.MqttDefaultFilePersistence(directory=test_directory)
-
-        # remove directory
-        rmtree(os.path.join(test_directory, 'test-test'), ignore_errors=True)
+        data_storage = mqtt.MqttDefaultFilePersistence(directory=self.test_directory)
 
         data_storage.open('test', 'test')
 
@@ -256,18 +321,44 @@ class TestCloudioCommonMqttDataStorage(unittest.TestCase):
         data = data_storage.get('food')
         self.assertEqual(data.get_data(), 'salad')
 
+        key = data.get_uuid_from_persistence_key('-test-it-with-uuid-name-whatever')
+        self.assertEqual(key, 'uuid-name')
+
         data = data_storage.get('bolds')
         self.assertIsNone(data)
+
+        data_storage.close()
+
+        data_storage_without_dir = mqtt.MqttDefaultFilePersistence()
+        data_storage_without_dir.close()
+
+    def test_mqtt_file_persistence_in_subdirectory(self):
+        sub_directory = os.path.join(self.test_directory, 'sub-dir')
+
+        data_storage = mqtt.MqttDefaultFilePersistence(directory=sub_directory)
+
+        data_storage.open('test', 'test')
+
+        data_storage.put(key='food', persistable='salad')
+
+        data = data_storage.get('food')
+        self.assertEqual(data.get_data(), 'salad')
 
         key = data.get_uuid_from_persistence_key('-test-it-with-uuid-name-whatever')
         self.assertEqual(key, 'uuid-name')
 
+        data = data_storage.get('bolds')
+        self.assertIsNone(data)
+
         data_storage.close()
 
+        path_helpers.remove_directory(sub_directory)
+
     def test_mqtt_file_persistence_access(self):
-        from cloudio.common.utils import path_helpers
+
         test_directory = path_helpers.path_from_file(__file__)
-        data_storage = mqtt.MqttDefaultFilePersistence(directory=test_directory)
+
+        data_storage = mqtt.MqttDefaultFilePersistence(directory=self.test_directory)
 
         data_storage.open('test', 'test')
 
@@ -292,3 +383,27 @@ class TestCloudioCommonMqttDataStorage(unittest.TestCase):
         self.assertListEqual(keys, [])
 
         data_storage.close()
+
+
+class TestCloudioCommonMqttPendingUpdate(unittest.TestCase):
+    """Tests PendingUpdate class in mqtt helpers module.
+    """
+
+    def test_pending_update(self):
+        from cloudio.common.mqtt import PendingUpdate
+
+        pu = PendingUpdate(b'some data')
+
+        self.assertEqual(pu.get_data(), 'some data')
+        self.assertTrue(isinstance(pu.get_data(), str))
+
+        pu2 = PendingUpdate('other data')
+
+        self.assertEqual(pu2.get_data(), 'other data')
+        self.assertTrue(isinstance(pu2.get_data(), str))
+
+        with self.assertRaises(AssertionError):
+            pu3 = PendingUpdate(1815)
+            pu3.get_data()
+
+

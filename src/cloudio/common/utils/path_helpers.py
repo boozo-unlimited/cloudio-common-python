@@ -34,3 +34,9 @@ def path_from_file(path_file_name: str) -> str:
     """
     path = os.path.abspath(os.path.dirname(path_file_name))
     return path
+
+
+def remove_directory(path):
+    from shutil import rmtree
+
+    rmtree(path, ignore_errors=True)
