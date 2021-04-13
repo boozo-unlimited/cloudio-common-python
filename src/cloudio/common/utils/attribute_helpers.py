@@ -9,13 +9,13 @@ def generate_attribute_names_by_name(name: str) -> tuple[str, str]:
     if len(name) == 0:
         return tuple()
 
-    if name[1] == '_':
-        attribute_name = name[1:]
+    if name[0] == '_':
+        name = name[1:]
 
     if '_' in name:
         words = list(filter(None, name.split('_')))
     elif '-' in name:
-        words = list(filter(None, name.split('_')))
+        words = list(filter(None, name.split('-')))
     else:
         words = string_helpers.camel_case_split(name, lower_camel_case=True)
 
@@ -31,7 +31,7 @@ def generate_setters_from_attribute_name(attribute_name: str) -> tuple[str, str]
     if len(attribute_name) == 0:
         return tuple()
 
-    if attribute_name[1] == '_':
+    if attribute_name[0] == '_':
         attribute_name = attribute_name[1:]
 
     if '_' in attribute_name:

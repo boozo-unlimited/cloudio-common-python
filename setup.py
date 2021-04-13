@@ -85,7 +85,13 @@ setup(
     #
     # This field corresponds to the "Home-Page" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
-    url='https://github.com/boozo-unlimited/cloudio-common-python',  # Optional
+    url='https://cloudio.hevs.ch',  # Optional
+
+    project_url={
+        "Bug Tracker": "https://github.com/boozo-unlimited/cloudio-common-python/issues",
+        "Source Code": "https://github.com/boozo-unlimited/cloudio-common-python",
+        "Documentation": "https://github.com/boozo-unlimited/cloudio-common-python#cloudio-common-package",
+    },
 
     # This should be your name or the name of the organization which owns the
     # project.
@@ -150,7 +156,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['paho-mqtt'],  # Optional
+    install_requires=['configobj', 'paho-mqtt'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"

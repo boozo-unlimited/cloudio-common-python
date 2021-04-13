@@ -51,6 +51,11 @@ class Threaded(object):
         if self._thread is None:
             self.log.warning('Thread not created. Calling setThread() for you!')
             self.setup_thread()
+
+        # Reset run attributes
+        self._thread_should_run = True
+        self._thread_left_run_loop = False
+
         self._thread.start()
 
     def stop_thread(self):
@@ -61,7 +66,7 @@ class Threaded(object):
         # Tell _thread it should leave
         self._thread_should_run = False
         # Wait until it is gone
-        if self._thread.isAlive():
+        if self._thread.is_alive():
             self.wait_on_thread_to_leave()
         # Delete instance
         del self._thread
@@ -95,7 +100,7 @@ class Threaded(object):
             logging.error(e, exc_info=True)
         finally:
             # Wait here for a while. If leaving the method directly, the _thread
-            # gets deleted and the isAlive() method won't work any more!
+            # gets deleted and the is_alive() method won't work any more!
             time.sleep(5)
             return
 
@@ -112,12 +117,14 @@ class Threaded(object):
             # see wakeup_thread()
             try:
                 self._sleep_condition.wait(timeout=waitTime)
-            except RuntimeError as e:
+            except RuntimeError as e:  # pragma: no cover
                 self.log.exception(e)
             finally:
                 self._sleep_condition.release()
+                return True
         else:
-            self.log.error('Could not acquire sleep condition!')
+            self.log.error('Could not acquire sleep condition!')  # pragma: no cover
+        return False  # pragma: no cover
 
     def _run(self):
         assert False, 'Method needs to be implemented in derived class!'
