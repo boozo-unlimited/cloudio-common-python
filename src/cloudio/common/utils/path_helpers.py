@@ -36,6 +36,12 @@ def path_from_file(path_file_name: str) -> str:
     return path
 
 
+def create_directory_structure(path: str):
+    """Creates one or more directories.
+    """
+    os.makedirs(path, exist_ok=True)
+
+
 def remove_directory(path):
     from shutil import rmtree
 
