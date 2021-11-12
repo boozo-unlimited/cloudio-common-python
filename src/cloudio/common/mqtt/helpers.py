@@ -6,6 +6,7 @@ import ssl
 import time
 import traceback
 import uuid
+import json
 from abc import ABCMeta
 from threading import Thread, RLock, Event, current_thread
 
@@ -94,6 +95,53 @@ class MqttAsyncClient(object):
                 raise RuntimeError('Client private key file \'%s\' does not exist!' % options.client_key_file)
             else:
                 client_key_file = options.client_key_file
+
+        # get the json certification file
+        jsonCert_file = None
+        if options.jsonCerts:
+            # Check if file exists
+            if not os.path.isfile(options.jsonCerts):
+                raise RuntimeError('Json certs file \'%s\' does not exist!' % options.jsonCerts)
+            else:
+                dirname = 'Cloud.io_temp'
+
+                # read the json certificates and key file
+                jsonCert_file = open(options.jsonCerts)
+
+                jdata = json.load(jsonCert_file)
+
+                # get the certificate and key
+                caCert = jdata['caCertificate']
+                clientCert = jdata['clientCertificate']
+                clientKey = jdata['clientPrivateKey']
+
+                # create the directory if not exist
+                if not os.path.exists(dirname):
+                    os.mkdir(dirname)
+
+                # write certificate and keys in a separate file
+                caCertF = open(dirname + "/caCert.pem", "w+")
+                caCertF.seek(0)
+                caCertF.writelines(caCert)
+                caCertF.truncate()
+                caCertF.close()
+
+                clientCertF = open(dirname + "/clientCert.pem", "w+")
+                clientCertF.seek(0)
+                clientCertF.writelines(clientCert)
+                clientCertF.truncate()
+                clientCertF.close()
+
+                clientKeyF = open(dirname + "/clientKey.pem", "w+")
+                clientKeyF.seek(0)
+                clientKeyF.writelines(clientKey)
+                clientKeyF.truncate()
+                clientKeyF.close()
+
+                # save the certificates and key files
+                client_key_file = dirname + "/clientKey.pem"
+                client_cert_file = dirname + "/clientCert.pem"
+                options.ca_file = dirname + "/caCert.pem"
 
         # Check which TSL protocol version should be used
         try:
@@ -386,6 +434,7 @@ class MqttConnectOptions(object):
         self.client_key_file = None  # type: str or None
         self.tls_version = None  # type: str or None
         self.will = None  # type dict
+        self.jsonCert = None  # type: str or None
 
     def set_will(self, topic, message, qos, retained):
         self.will = {
