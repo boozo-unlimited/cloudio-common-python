@@ -434,7 +434,7 @@ class MqttConnectOptions(object):
         self.client_key_file = None  # type: str or None
         self.tls_version = None  # type: str or None
         self.will = None  # type dict
-        self.jsonCert = None  # type: str or None
+        self.jsonCerts = None  # type: str or None
 
     def set_will(self, topic, message, qos, retained):
         self.will = {
