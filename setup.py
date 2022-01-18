@@ -35,8 +35,9 @@ def read_version_info():
 __version__ = read_version_info()
 
 # Get the long description from the README file
-# with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-#    long_description = f.read()
+current_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(current_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
@@ -77,9 +78,9 @@ setup(
     # This field corresponds to the "Description" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#description-optional
     # long_description=long_description,  # Optional
-    long_description='Contains code used in both cloud.iO endpoints and clients',
+    long_description=long_description,
 
-    # long_description_content_type='markdown',
+    long_description_content_type='text/markdown',
 
     # This should be a valid link to your project's main homepage.
     #
@@ -87,7 +88,7 @@ setup(
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
     url='https://cloudio.hevs.ch',  # Optional
 
-    project_url={
+    project_urls={
         "Bug Tracker": "https://github.com/boozo-unlimited/cloudio-common-python/issues",
         "Source Code": "https://github.com/boozo-unlimited/cloudio-common-python",
         "Documentation": "https://github.com/boozo-unlimited/cloudio-common-python#cloudio-common-package",
