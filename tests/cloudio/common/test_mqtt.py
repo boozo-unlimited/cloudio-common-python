@@ -15,6 +15,8 @@ from cloudio.common import mqtt
 
 update_working_directory()  # Needed when: 'pipenv run python -m unittest tests/cloudio/common/{this_file}.py'
 
+uuid = 'edfa7b6a-5ef2-45c0-af08-f44083979e64'
+endpoint_config = 'C:/Users/martin.meyer/Documents/cloudio-common-python/tests/cloudio/common/config/endpoint.properties'
 
 class TestCloudioCommonMqttHelpers(unittest.TestCase):
     """Tests mqtt helpers module.
@@ -53,9 +55,9 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
     def test_mqtt_async_client_connect_bad_options(self):
         import contextlib
 
-        ca_file_name = 'ca-file.pem'
-        client_cert_file_name = 'client-cert-file.pem'
-        client_key_file_name = 'client-key-file.pem'
+        ca_file_name = 'Cloud.io_temp/caCert.pem'
+        client_cert_file_name = 'Cloud.io_temp/clientCert.pem'
+        client_key_file_name = 'Cloud.io_temp/clientKey.pem'
 
         # Delete local files
         with contextlib.suppress(FileNotFoundError):
@@ -130,7 +132,7 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
             client.connect(options=options)
 
         will_message = 'DEAD'
-        options.set_will('@offline/VacuumCleanerEndpoint', will_message, 1, False)
+        options.set_will('@offline/' + uuid, will_message, 1, False)
 
         with self.assertRaises(ValueError):  # ValueError: Invalid host.
             client.connect(options=options)
@@ -156,14 +158,14 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
         from cloudio.common.utils.resource_loader import ResourceLoader
         from cloudio.common.utils.resource_loader import prettify
 
-        endpoint_config = 'VacuumCleanerEndpoint.properties'
         config = ResourceLoader.load_from_locations(endpoint_config, ['home:/.config/cloud.io', ])
         self.assertNotEqual(config, dict())  # You must provide the needed config files!
 
         options = mqtt.MqttConnectOptions()
-        options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
-        options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
-        options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
+        options.jsonCerts = prettify(config['ch.hevs.cloudio.endpoint.ssl.certs'])
+        # options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
+        # options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
+        # options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
 
         client = mqtt.MqttReconnectClient(host=config['ch.hevs.cloudio.endpoint.hostUri'],
                                           client_id='test-vacuum-cleaner' + '-endpoint-',
@@ -198,10 +200,10 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
                 self.connected = True
 
                 # Subscribe to '@set' message
-                self._client.subscribe('@set/' + 'VacuumCleanerEndpoint' + '/#', 1)
+                self._client.subscribe('@set/' + uuid + '/#', 1)
 
                 # Test subscription by sending a '@set' message
-                self._client.publish('@set/VacuumCleanerEndpoint/test', '{"value":"1" }')
+                self._client.publish('@set/' + uuid + '/CrazyFrog/parameters/_triangle', '{"constraint": "Parameter", "type": "Number", "timestamp": 1.637060380537E12,"value": 58.0}')
 
             def on_connection_thread_finished_callback(self):
                 self.conn_thread_finished = True
@@ -213,17 +215,17 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
             def on_message_published(self, client, userdata, mid):
                 self.msg_published = True
 
-        endpoint_config = 'VacuumCleanerEndpoint.properties'
         config = ResourceLoader.load_from_locations(endpoint_config, ['home:/.config/cloud.io', ])
         self.assertNotEqual(config, dict())  # You must provide the needed config files!
 
         options = mqtt.MqttConnectOptions()
-        options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
-        options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
-        options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
+        options.jsonCerts = prettify(config['ch.hevs.cloudio.endpoint.ssl.certs'])
+        # options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
+        # options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
+        # options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
 
         client = mqtt.MqttReconnectClient(host=config['ch.hevs.cloudio.endpoint.hostUri'],
-                                          client_id='test-vacuum-cleaner' + '-endpoint-',
+                                          client_id=uuid,
                                           clean_session=True,
                                           options=options)
 
@@ -236,26 +238,26 @@ class TestCloudioCommonMqttHelpers(unittest.TestCase):
         self.assertTrue(model.connected)
         self.assertTrue(model.conn_thread_finished)
         self.assertTrue(model.msg_received)
-        self.assertTrue('test' in model.received_topic)
+        self.assertTrue('/CrazyFrog/parameters/_triangle' in model.received_topic)
         self.assertTrue(model.msg_published)
 
     def test_bad_host_address(self):
         from cloudio.common.utils.resource_loader import ResourceLoader
         from cloudio.common.utils.resource_loader import prettify
 
-        endpoint_config = 'VacuumCleanerEndpoint.properties'
         config = ResourceLoader.load_from_locations(endpoint_config, ['home:/.config/cloud.io', ])
         self.assertNotEqual(config, dict())  # You must provide the needed config files!
 
         options = mqtt.MqttConnectOptions()
-        options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
-        options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
-        options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
+        options.jsonCerts = prettify(config['ch.hevs.cloudio.endpoint.ssl.certs'])
+        # options.ca_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.authorityCert'])
+        # options.client_cert_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientCert'])
+        # options.client_key_file = prettify(config['ch.hevs.cloudio.endpoint.ssl.clientKey'])
 
         bad_host_address = 'test.' + config['ch.hevs.cloudio.endpoint.hostUri']
 
         client = mqtt.MqttReconnectClient(host=bad_host_address,
-                                          client_id='test-vacuum-cleaner' + '-endpoint-',
+                                          client_id=uuid,
                                           clean_session=True,
                                           options=options)
 
