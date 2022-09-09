@@ -10,8 +10,13 @@ def prettify(path_name: str) -> str:
     """
 
     if path_name:
+
+        path_name = path_name.replace('\\:', ':')
+        # Java properties file compatibility
+        path_name = path_name.replace('file:/', '')
+
         # Remove backslashes from path
-        path_name = path_name.replace('\\', '/')
+        path_name = path_name.replace('\\', '')
 
         if path_name[0] == '~':
             base_path = os.path.expanduser(path_name[0])
@@ -19,7 +24,7 @@ def prettify(path_name: str) -> str:
             path_name = os.path.join(base_path, remaining_path)
 
         # and again
-        path_name = path_name.replace('\\', '/')
+        path_name = path_name.replace('\\', '')
 
     return path_name
 
