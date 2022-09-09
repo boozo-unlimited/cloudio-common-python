@@ -122,7 +122,7 @@ class MqttAsyncClient(object):
                                      keyfile=client_key_file,  # Client private key
                                      tls_version=tls_version,  # ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_2
                                      ciphers=None)  # None, 'ALL', 'TLSv1.2', 'TLSv1.0'
-                self._client.tls_insecure_set(True)  # True: No verification of the server hostname in
+                self._client.tls_insecure_set(not options.verify_tls)  # True: No verification of the server hostname in
                 # the server certificate
             else:
                 self.log.error('No CA file provided. Connection attempt likely to fail!')
@@ -139,7 +139,7 @@ class MqttAsyncClient(object):
             # Otherwise other thread cannot disconnect
 
             # Let MQTT client do the connection
-            self._client.connect(self._host, port=port)
+            self._client.connect(self._host, port=port, keepalive=options.keepalive_interval)
             if self._client:
                 self._client.loop_start()
 
@@ -248,7 +248,7 @@ class MqttReconnectClient(MqttAsyncClient):
         self._options = options
         self._on_connected_callback = None
         self._on_connection_thread_finished_callback = None
-        self._retry_interval = 10  # Connect retry interval in seconds
+        self._connect_retry_interval = options.connect_retry_interval  # Connect retry interval in seconds
         self._auto_reconnect = True
         self._thread = None
         self._connect_timeout_event = Event()
@@ -356,12 +356,12 @@ class MqttReconnectClient(MqttAsyncClient):
 
             if not self.is_connected():
                 # If we should not retry, give up
-                if self._retry_interval > 0:
+                if self._connect_retry_interval > 0:
                     # Wait until it is time for the next connect
-                    self._connect_timeout_event.wait(self._retry_interval)
+                    self._connect_timeout_event.wait(self._connect_retry_interval)
 
                 # If we should not retry, give up
-                if self._retry_interval == 0:
+                if self._connect_retry_interval == 0:
                     break
 
         self.log.info('Thread: Job done - leaving')
@@ -386,6 +386,9 @@ class MqttConnectOptions(object):
         self.client_key_file = None  # type: str or None
         self.tls_version = None  # type: str or None
         self.will = None  # type dict
+        self.retry_interval = 10
+        self.keepalive_interval = 60
+        self.verify_tls = True
 
     def set_will(self, topic, message, qos, retained):
         self.will = {

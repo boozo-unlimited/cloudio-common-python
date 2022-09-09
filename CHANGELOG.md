@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0 - (2022-09-09)
+- Added mqtt options parameters
+
+
 ## 0.3.0 - (2021-04-13)
 - Updated tests and test coverage
 - Updated and extended packages
